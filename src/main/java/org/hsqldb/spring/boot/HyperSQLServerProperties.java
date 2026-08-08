@@ -4,9 +4,26 @@ import java.util.NoSuchElementException;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for the standalone HyperSQL server, bound to the
+ * {@value #PREFIX} namespace.
+ * <p>
+ * Mirrors the native {@code server.*} property keys exposed by HSQLDB so they
+ * can be set declaratively from {@code application.properties}/
+ * {@code application.yml}. When {@link #props} points to an external
+ * {@code .properties} file, that file takes precedence over the individual
+ * fields.
+ * </p>
+ *
+ * @author [@Loong Wan](https://github.com/loong10k)
+ * @since 1.0.0
+ */
 @ConfigurationProperties(HyperSQLServerProperties.PREFIX)
 public class HyperSQLServerProperties {
 
+	/**
+	 * Property prefix under which HyperSQL server options live.
+	 */
 	public static final String PREFIX = "hsqldb.server";
 
 	// keys to properties
@@ -30,10 +47,18 @@ public class HyperSQLServerProperties {
 	public static final String SC_KEY_DAEMON = "server.daemon";
 	public static final String SC_KEY_SYSTEM = "system";
 
+	/**
+	 * Supported HyperSQL transport protocols.
+	 */
 	// type of server
 	public enum Protocol {
 
-		HTTP(0), HSQL(1), BER(2);
+		/** HTTP transport, allowing browser/WebSocket style access. */
+		HTTP(0),
+		/** Native HSQL wire protocol. */
+		HSQL(1),
+		/** Berkeley DB in-process protocol. */
+		BER(2);
 
 		private final int protocol;
 
@@ -41,18 +66,42 @@ public class HyperSQLServerProperties {
 			this.protocol = protocol;
 		}
 
+		/**
+		 * Returns the numeric identifier used by HSQLDB for this protocol.
+		 *
+		 * @return the underlying HSQLDB protocol code
+		 */
 		public int get() {
 			return protocol;
 		}
 
+		/**
+		 * Compares this protocol with another {@link Protocol} instance.
+		 *
+		 * @param protocol the protocol to compare against
+		 * @return {@code true} if both protocols are equal
+		 */
 		public boolean equals(Protocol protocol) {
 			return this.compareTo(protocol) == 0;
 		}
 
+		/**
+		 * Compares this protocol with a numeric protocol code.
+		 *
+		 * @param protocol the numeric protocol code to compare against
+		 * @return {@code true} if the codes refer to the same protocol
+		 */
 		public boolean equals(int protocol) {
 			return this.compareTo(Protocol.valueOfIgnoreCase(protocol)) == 0;
 		}
 
+		/**
+		 * Resolves a protocol by its numeric code, ignoring case.
+		 *
+		 * @param key the numeric protocol code
+		 * @return the matching {@link Protocol}
+		 * @throws NoSuchElementException if no protocol matches the given key
+		 */
 		public static Protocol valueOfIgnoreCase(int key) {
 			for (Protocol protocol : Protocol.values()) {
 				if (protocol.get() == key) {
@@ -82,11 +131,11 @@ public class HyperSQLServerProperties {
 	 * shutdown
 	 */
 	protected boolean autoRestart = false;
-	/** HyperSQL Server 数据库路径 */
+	/** HyperSQL Server database path. */
 	private String database;
-	/** HyperSQL Server 数据库名称 */
+	/** HyperSQL Server database name. */
 	private String dbname;
-	/** HyperSQL Server 数据库文件存放位置 */
+	/** Location where HyperSQL Server database files are stored. */
 	private String dbFilePath;
 	/**
 	 * Whether server thread is a daemon. Used before starting. The default is
@@ -95,9 +144,9 @@ public class HyperSQLServerProperties {
 	protected boolean daemon = false;
 	/** The name of the web page served when no page is specified */
 	protected String defaultPage = "index.html";
-	/** HyperSQL Server 允许的最大连接数 ，默认 50 */
+	/** Maximum number of connections allowed by HyperSQL Server, default 50. */
 	protected int maxconnections = 50;
-	/** HyperSQL Server 允许创建的数据库数量，默认 10 */
+	/** Maximum number of databases HyperSQL Server may create, default 10. */
 	protected int maxdatabases = 10;
 	/**
 	 * Whether this server calls System.exit() when shutdown. if true, System.exit()
@@ -106,11 +155,11 @@ public class HyperSQLServerProperties {
 	private boolean noSystemExit = true;
 	/** The server listen port. */
 	private int port;
-	/** HyperSQL Server 服务类型；HTTP,HSQL,BER */
+	/** HyperSQL Server transport protocol: HTTP, HSQL or BER. */
 	private Protocol protocol = Protocol.HTTP;
-	/** HyperSQL Server 外部配置文件；如 ： classpath:hsql.properties */
+	/** External configuration file for HyperSQL Server, e.g. {@code classpath:hsql.properties}. */
 	protected String props;
-	/** password: 连接数据库的密码 */
+	/** Whether remote opening of databases is allowed. */
 	protected boolean remoteOpen = false;
 	/** The path of the root directory from which web content is served. */
 	protected String root = ".";

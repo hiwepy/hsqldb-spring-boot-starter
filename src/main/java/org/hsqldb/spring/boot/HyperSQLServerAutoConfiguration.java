@@ -27,7 +27,20 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.StringUtils;
 
 /**
- * 
+ * Spring Boot auto-configuration that starts a standalone HyperSQL server
+ * process (HTTP, HSQL or Berkeley protocol) alongside the application.
+ * <p>
+ * Activates when the HSQLDB JDBC driver is present and
+ * {@code hsqldb.enabled=true}, running before
+ * {@link DataSourceAutoConfiguration} so client data sources can target the
+ * newly started server. The server is fully driven by
+ * {@link HyperSQLServerProperties}; when an external {@code .properties} file
+ * is referenced via {@code hsqldb.server.props} it takes precedence, otherwise
+ * every option is derived from the bound properties.
+ * </p>
+ *
+ * @author [@Loong Wan](https://github.com/loong10k)
+ * @since 1.0.0
  */
 @Configuration
 @ConditionalOnClass(org.hsqldb.jdbc.JDBCDriver.class)
@@ -42,12 +55,24 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 	protected static final int serverBundleHandle = ResourceBundleHandler
 			.getBundleHandle("org_hsqldb_server_Server_messages", null);
 
+	/**
+	 * Provides the {@link PrintWriter} used by the HyperSQL server to emit log
+	 * messages, defaulting to {@code System.out}.
+	 *
+	 * @return a print writer wrapping standard output
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public PrintWriter logWriter() {
 		return new PrintWriter(System.out);
 	}
-	
+
+	/**
+	 * Provides the {@link PrintWriter} used by the HyperSQL server to emit
+	 * error messages, defaulting to {@code System.err}.
+	 *
+	 * @return a print writer wrapping standard error
+	 */
 	@Bean
 	@ConditionalOnMissingBean
 	public PrintWriter errWriter() {
@@ -55,6 +80,22 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 	}
 
 	/**
+	 * Creates, configures and starts the HyperSQL {@link Server} bean.
+	 * <p>
+	 * For the Berkeley ({@code BER}) protocol a lightweight in-process server
+	 * is created via {@link HsqlServerFactory}. For HTTP/HSQL protocols the
+	 * server properties are built either from an external properties file
+	 * (when {@code hsqldb.server.props} points to one) or from the bound
+	 * {@link HyperSQLServerProperties}, after which a {@link WebServer} is
+	 * configured and started.
+	 * </p>
+	 *
+	 * @param properties  the bound server configuration
+	 * @param logWriter   destination for server log output
+	 * @param errWriter   destination for server error output
+	 * @return the started HyperSQL server, or {@code null} if the resolved
+	 *         properties contained errors
+	 * @throws Exception if the server cannot be configured or started
 	 */
 	@Bean
 	public Server hyperSQLServer(HyperSQLServerProperties properties, PrintWriter logWriter, PrintWriter errWriter)
@@ -75,9 +116,9 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 			}
 		}
 
-		HsqlProperties props = null; 
+		HsqlProperties props = null;
 		if(fileProps == null) {
-			
+
 			props = ServerConfiguration.newDefaultProperties(properties.getProtocol().get());
 			props.setProperty(HyperSQLServerProperties.SC_KEY_ADDRESS, properties.getAddress());
 			props.setProperty(HyperSQLServerProperties.SC_KEY_AUTORESTART_SERVER, properties.isAutoRestart());
@@ -96,14 +137,14 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 			props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_DATABASES, properties.getMaxdatabases());
 			props.setProperty(HyperSQLServerProperties.SC_KEY_ACL, properties.isAcl());
 			props.setProperty(HyperSQLServerProperties.SC_KEY_DAEMON, properties.isDaemon());
-			
+
 		} else {
 			props = new HsqlProperties(fileProps);
 		}
-		
+
 		props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_CONNECTIONS, properties.getMaxconnections());
 		props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_DATABASES, properties.getMaxdatabases());
-		
+
 		String[] errors = props.getErrorKeys();
 
 		if (errors.length != 0) {
@@ -111,7 +152,7 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 			logger.warn(ResourceBundleHandler.getString(serverBundleHandle, "webserver.help"));
 			return null;
 		}
-		
+
 		ServerConfiguration.translateDefaultDatabaseProperty(props);
 
 		// Standard behaviour when started from the command line
@@ -119,7 +160,7 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 		// course, be overridden by whatever, if any, security policy is in place.
 		ServerConfiguration.translateDefaultNoSystemExitProperty(props);
 		ServerConfiguration.translateAddressProperty(props);
-		
+
 		// finished setting up properties;
 		WebServer server = new WebServer();
 
@@ -151,6 +192,13 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 		return server;
 	}
 
+	/**
+	 * Stores the {@link ResourceLoader} injected by Spring so external property
+	 * files (e.g. {@code classpath:hsql.properties}) can be resolved when the
+	 * server starts.
+	 *
+	 * @param resourceLoader the resource loader provided by the application context
+	 */
 	@Override
 	public void setResourceLoader(ResourceLoader resourceLoader) {
 		this.resourceLoader = resourceLoader;

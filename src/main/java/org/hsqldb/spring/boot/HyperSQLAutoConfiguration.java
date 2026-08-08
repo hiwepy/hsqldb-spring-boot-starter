@@ -8,7 +8,21 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 
+ * Spring Boot auto-configuration for the HyperSQL (HSQLDB) embedded database.
+ * <p>
+ * Activates when the HSQLDB JDBC driver is on the classpath and
+ * {@code hsqldb.enabled=true}. Runs before {@link DataSourceAutoConfiguration}
+ * so that the embedded HyperSQL database (and optional standalone server) is
+ * available by the time Spring Boot configures the primary {@code DataSource}.
+ * </p>
+ * <p>
+ * Binds both {@link HyperSQLProperties} (the global opt-in switch) and
+ * {@link HyperSQLServerProperties} (the standalone server settings). The
+ * actual server lifecycle is owned by {@link HyperSQLServerAutoConfiguration}.
+ * </p>
+ *
+ * @author [@Loong Wan](https://github.com/loong10k)
+ * @since 1.0.0
  */
 @Configuration
 @ConditionalOnClass(org.hsqldb.jdbc.JDBCDriver.class)
@@ -17,5 +31,5 @@ import org.springframework.context.annotation.Configuration;
 @AutoConfigureBefore(DataSourceAutoConfiguration.class)
 public class HyperSQLAutoConfiguration {
 
-	
+
 }
