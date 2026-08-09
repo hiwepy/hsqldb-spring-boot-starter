@@ -17,7 +17,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.Bean;
@@ -51,7 +51,7 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	private ResourceLoader resourceLoader;
-	//
+
 	protected static final int serverBundleHandle = ResourceBundleHandler
 			.getBundleHandle("org_hsqldb_server_Server_messages", null);
 
@@ -106,58 +106,18 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 					properties.isSilent());
 		}
 
-		Properties fileProps = null;
-		if (StringUtils.hasText(properties.getProps())) {
-			Resource resource = resourceLoader.getResource(properties.getProps());
-			if (resource.exists()) {
-				fileProps = new Properties();
-				InputStream input = resource.getInputStream();
-				fileProps.load(input);
-			}
-		}
-
-		HsqlProperties props = null;
-		if(fileProps == null) {
-
-			props = ServerConfiguration.newDefaultProperties(properties.getProtocol().get());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_ADDRESS, properties.getAddress());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_AUTORESTART_SERVER, properties.isAutoRestart());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_DATABASE, properties.getDatabase());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_DBNAME, properties.getDbname());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_NO_SYSTEM_EXIT, properties.isNoSystemExit());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_PORT, properties.getPort());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_HTTP_PORT, properties.getPort());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_SILENT, properties.isSilent());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_TLS, properties.isTls());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_TRACE, properties.isTrace());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_WEB_DEFAULT_PAGE, properties.getDefaultPage());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_WEB_ROOT, properties.getRoot());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_CONNECTIONS, properties.getMaxconnections());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_REMOTE_OPEN_DB, properties.isRemoteOpen());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_DATABASES, properties.getMaxdatabases());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_ACL, properties.isAcl());
-			props.setProperty(HyperSQLServerProperties.SC_KEY_DAEMON, properties.isDaemon());
-
-		} else {
-			props = new HsqlProperties(fileProps);
-		}
-
-		props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_CONNECTIONS, properties.getMaxconnections());
-		props.setProperty(HyperSQLServerProperties.SC_KEY_MAX_DATABASES, properties.getMaxdatabases());
+		HsqlProperties props = buildServerProperties(properties);
 
 		String[] errors = props.getErrorKeys();
 
 		if (errors.length != 0) {
-			System.out.println("no value for argument:" + errors[0]);
+			logger.warn("Invalid server properties, first error key: {}", errors[0]);
 			logger.warn(ResourceBundleHandler.getString(serverBundleHandle, "webserver.help"));
 			return null;
 		}
 
-		ServerConfiguration.translateDefaultDatabaseProperty(props);
-
 		// Standard behaviour when started from the command line
-		// is to halt the VM when the server shuts down. This may, of
-		// course, be overridden by whatever, if any, security policy is in place.
+		// is to halt the VM when the server shuts down.
 		ServerConfiguration.translateDefaultNoSystemExitProperty(props);
 		ServerConfiguration.translateAddressProperty(props);
 
@@ -174,22 +134,66 @@ public class HyperSQLServerAutoConfiguration implements ResourceLoaderAware {
 			throw e;
 		}
 
-		// now messages go to the channel specified in properties
-		logger.debug("[" + server.getServerId() + "]: " + "Startup sequence initiated from main() method.");
+		logger.debug("[{}]: Startup sequence initiated.", server.getServerId());
 
-		if (fileProps != null) {
-			logger.debug("[" + server.getServerId() + "]: " + "Loaded properties from [" + properties.getProps()
-					+ ".properties]");
+		if (StringUtils.hasText(properties.getProps())) {
+			logger.debug("[{}]: Loaded properties from [{}]", server.getServerId(), properties.getProps());
 		} else {
-			logger.debug("[" + server.getServerId() + "]: " + "Could not load properties from file");
-			logger.debug("[" + server.getServerId() + "]: " + "Using application.properties/application.yml only");
+			logger.debug("[{}]: Using application.properties/application.yml only", server.getServerId());
 		}
 
 		server.start();
-
 		server.setRestartOnShutdown(properties.isAutoRestart());
 
 		return server;
+	}
+
+	/**
+	 * Builds the {@link HsqlProperties} for the HyperSQL server from either an
+	 * external properties file or the bound {@link HyperSQLServerProperties}.
+	 *
+	 * @param properties the bound server configuration
+	 * @return the HSQLDB server properties
+	 * @throws Exception if the external properties file cannot be loaded
+	 */
+	protected HsqlProperties buildServerProperties(HyperSQLServerProperties properties) throws Exception {
+		if (StringUtils.hasText(properties.getProps())) {
+			Resource resource = resourceLoader.getResource(properties.getProps());
+			if (resource.exists()) {
+				Properties fileProps = new Properties();
+				try (InputStream input = resource.getInputStream()) {
+					fileProps.load(input);
+				}
+				return new HsqlProperties(fileProps);
+			}
+		}
+
+		// Build properties manually to avoid unsupported keys (server.default_page,
+		// server.root) set by ServerConfiguration.newDefaultProperties() in HSQLDB 2.7.3
+		Properties serverProps = new Properties();
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_ADDRESS, properties.getAddress());
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_AUTORESTART_SERVER,
+				String.valueOf(properties.isAutoRestart()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_DATABASE + ".0", properties.getDatabase());
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_DBNAME + ".0", properties.getDbname());
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_NO_SYSTEM_EXIT,
+				String.valueOf(properties.isNoSystemExit()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_PORT, String.valueOf(properties.getPort()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_SILENT, String.valueOf(properties.isSilent()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_TLS, String.valueOf(properties.isTls()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_TRACE, String.valueOf(properties.isTrace()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_REMOTE_OPEN_DB,
+				String.valueOf(properties.isRemoteOpen()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_MAX_CONNECTIONS,
+				String.valueOf(properties.getMaxconnections()));
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_MAX_DATABASES,
+				String.valueOf(properties.getMaxdatabases()));
+		// server.acl expects a file path, not a boolean; only set when an ACL file is configured
+		if (StringUtils.hasText(properties.getAclFilePath())) {
+			serverProps.setProperty(HyperSQLServerProperties.SC_KEY_ACL, properties.getAclFilePath());
+		}
+		serverProps.setProperty(HyperSQLServerProperties.SC_KEY_DAEMON, String.valueOf(properties.isDaemon()));
+		return new HsqlProperties(serverProps);
 	}
 
 	/**

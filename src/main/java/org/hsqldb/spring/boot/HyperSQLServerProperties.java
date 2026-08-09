@@ -119,6 +119,8 @@ public class HyperSQLServerProperties {
 	private boolean enabled = false;
 	/** Enable HyperSQL Server Acl */
 	protected boolean acl;
+	/** Path to the ACL (Access Control List) file for HyperSQL Server. */
+	private String aclFilePath;
 	/**
 	 * A string representing the desired InetAddress as would be retrieved by
 	 * InetAddres.getByName(), or a null or empty string or "0.0.0.0" to signify
@@ -190,6 +192,14 @@ public class HyperSQLServerProperties {
 
 	public void setAcl(boolean acl) {
 		this.acl = acl;
+	}
+
+	public String getAclFilePath() {
+		return aclFilePath;
+	}
+
+	public void setAclFilePath(String aclFilePath) {
+		this.aclFilePath = aclFilePath;
 	}
 
 	public String getAddress() {

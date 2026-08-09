@@ -558,6 +558,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+
+        <!-- For Spring Boot JDBC (DataSourceAutoConfiguration) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
         
         
         <!-- https://mvnrepository.com/artifact/org.hsqldb/hsqldb -->
