@@ -4,26 +4,9 @@ import java.util.NoSuchElementException;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Configuration properties for the standalone HyperSQL server, bound to the
- * {@value #PREFIX} namespace.
- * <p>
- * Mirrors the native {@code server.*} property keys exposed by HSQLDB so they
- * can be set declaratively from {@code application.properties}/
- * {@code application.yml}. When {@link #props} points to an external
- * {@code .properties} file, that file takes precedence over the individual
- * fields.
- * </p>
- *
- * @author <a href="https://github.com/loong10k">Loong Wan</a>
- * @since 1.0.0
- */
 @ConfigurationProperties(HyperSQLServerProperties.PREFIX)
 public class HyperSQLServerProperties {
 
-	/**
-	 * Property prefix under which HyperSQL server options live.
-	 */
 	public static final String PREFIX = "hsqldb.server";
 
 	// keys to properties
@@ -47,10 +30,13 @@ public class HyperSQLServerProperties {
 	public static final String SC_KEY_DAEMON = "server.daemon";
 	public static final String SC_KEY_SYSTEM = "system";
 
-	/**
-	 * Supported HyperSQL transport protocols.
-	 */
 	// type of server
+	/**
+	 * <p>Enumeration of protocol values.</p>
+	 *
+	 * @author <a href="https://github.com/loong10k">Loong Wan</a>
+	 * @since 1.0.0
+	 */
 	public enum Protocol {
 
 		/** HTTP transport, allowing browser/WebSocket style access. */
@@ -177,170 +163,239 @@ public class HyperSQLServerProperties {
 	 * PrintStream/PrintWriter, if any.
 	 */
 	protected boolean trace = false;
+	/**
+	 * <p>Is enabled.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isEnabled() {
 		return enabled;
 	}
+	/** Sets the enabled. */
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
 	}
+	/**
+	 * <p>Is acl.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isAcl() {
 		return acl;
 	}
+	/** Sets the acl. */
 
 	public void setAcl(boolean acl) {
 		this.acl = acl;
 	}
+	/** Gets the acl file path. */
 
 	public String getAclFilePath() {
 		return aclFilePath;
 	}
+	/** Sets the acl file path. */
 
 	public void setAclFilePath(String aclFilePath) {
 		this.aclFilePath = aclFilePath;
 	}
+	/** Gets the address. */
 
 	public String getAddress() {
 		return address;
 	}
+	/** Sets the address. */
 
 	public void setAddress(String address) {
 		this.address = address;
 	}
+	/**
+	 * <p>Is auto restart.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isAutoRestart() {
 		return autoRestart;
 	}
+	/** Sets the auto restart. */
 
 	public void setAutoRestart(boolean autoRestart) {
 		this.autoRestart = autoRestart;
 	}
+	/** Gets the database. */
 
 	public String getDatabase() {
 		return database;
 	}
+	/** Sets the database. */
 
 	public void setDatabase(String database) {
 		this.database = database;
 	}
+	/** Gets the dbname. */
 
 	public String getDbname() {
 		return dbname;
 	}
+	/** Sets the dbname. */
 
 	public void setDbname(String dbname) {
 		this.dbname = dbname;
 	}
+	/** Gets the db file path. */
 
 	public String getDbFilePath() {
 		return dbFilePath;
 	}
+	/** Sets the db file path. */
 
 	public void setDbFilePath(String dbFilePath) {
 		this.dbFilePath = dbFilePath;
 	}
+	/**
+	 * <p>Is daemon.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isDaemon() {
 		return daemon;
 	}
+	/** Sets the daemon. */
 
 	public void setDaemon(boolean daemon) {
 		this.daemon = daemon;
 	}
+	/** Gets the default page. */
 
 	public String getDefaultPage() {
 		return defaultPage;
 	}
+	/** Sets the default page. */
 
 	public void setDefaultPage(String defaultPage) {
 		this.defaultPage = defaultPage;
 	}
+	/** Gets the maxconnections. */
 
 	public int getMaxconnections() {
 		return maxconnections;
 	}
+	/** Sets the maxconnections. */
 
 	public void setMaxconnections(int maxconnections) {
 		this.maxconnections = maxconnections;
 	}
+	/** Gets the maxdatabases. */
 
 	public int getMaxdatabases() {
 		return maxdatabases;
 	}
+	/** Sets the maxdatabases. */
 
 	public void setMaxdatabases(int maxdatabases) {
 		this.maxdatabases = maxdatabases;
 	}
+	/**
+	 * <p>Is no system exit.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isNoSystemExit() {
 		return noSystemExit;
 	}
+	/** Sets the no system exit. */
 
 	public void setNoSystemExit(boolean noSystemExit) {
 		this.noSystemExit = noSystemExit;
 	}
+	/** Gets the port. */
 
 	public int getPort() {
 		return port;
 	}
+	/** Sets the port. */
 
 	public void setPort(int port) {
 		this.port = port;
 	}
+	/** Gets the protocol. */
 
 	public Protocol getProtocol() {
 		return protocol;
 	}
+	/** Sets the protocol. */
 
 	public void setProtocol(Protocol protocol) {
 		this.protocol = protocol;
 	}
+	/** Gets the props. */
 
 	public String getProps() {
 		return props;
 	}
+	/** Sets the props. */
 
 	public void setProps(String props) {
 		this.props = props;
 	}
+	/**
+	 * <p>Is remote open.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isRemoteOpen() {
 		return remoteOpen;
 	}
+	/** Sets the remote open. */
 
 	public void setRemoteOpen(boolean remoteOpen) {
 		this.remoteOpen = remoteOpen;
 	}
+	/** Gets the root. */
 
 	public String getRoot() {
 		return root;
 	}
+	/** Sets the root. */
 
 	public void setRoot(String root) {
 		this.root = root;
 	}
+	/**
+	 * <p>Is silent.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isSilent() {
 		return silent;
 	}
+	/** Sets the silent. */
 
 	public void setSilent(boolean silent) {
 		this.silent = silent;
 	}
+	/**
+	 * <p>Is tls.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isTls() {
 		return tls;
 	}
+	/** Sets the tls. */
 
 	public void setTls(boolean tls) {
 		this.tls = tls;
 	}
+	/**
+	 * <p>Is trace.</p>
+	 * @return the boolean
+	 */
 
 	public boolean isTrace() {
 		return trace;
 	}
+	/** Sets the trace. */
 
 	public void setTrace(boolean trace) {
 		this.trace = trace;
